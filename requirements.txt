@@ -1,0 +1,8 @@
+discord
+bs4
+yfinance
+matplotlib
+pandas
+pandas_datareader
+numpy
+requests

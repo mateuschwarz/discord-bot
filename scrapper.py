@@ -329,3 +329,6 @@ class Scrapper:
 
                 _quote = [quote['latestPrice'], quote['change'], quote['changePercent']]
                 self.data_frame.loc[row][3:6] = _quote
+
+            format = lambda x : float(x) * 100
+            self.data_frame['Change %'] = self.data_frame['Change %'].apply(format)

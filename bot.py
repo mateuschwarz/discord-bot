@@ -1,30 +1,44 @@
 
+import os
 import json
-import discord as ds
+import discord
 import random as rng
 from datetime import datetime as dt
-from discord.ext import commands as cmds
-from scrapper.scrapper import Scrapper as sc
+from discord.ext import commands
+from discord.ext.commands import has_permissions, CheckFailure
 
-class GanjaBot(cmds.Cog):
+class Commands(commands.Cog):
 
+    """ main commands and events from ganja bot """
 
     def __init__(self, client):
+        
         self.client = client
+        self.created_at = dt.now()
 
-        self.CFG_PATH = "./json/cfg.json"
+        self.CLIENT_CFG = "./json/client.json"
+        self.CFG_PATH = "./json/options.json"
+        self.COGS_PATH = "cogs"
 
         with open(self.CFG_PATH) as f:
-            self.cfg = json.loads(f.read())
-
-        self.ADMIN_ID = self.cfg['Client']['ADMIN ID']
-        self.WLIST = self.cfg['Watch List']
-        self.ACTIVITY = ds.Game(name=self.cfg['Activity']['name'])
-
-        self.Scrapper = sc    
+            self.cfg = json.load(f)
+        
+        with open(self.CLIENT_CFG) as f:
+            self.client_cfg = json.load(f)
 
 
-    @cmds.command()
+    @commands.Cog.listener()
+    async def on_ready(self):
+
+        """ bot ready message """
+
+        self.ccon()
+        print(f'ganja-bot v4.2.0 online.')
+        ACTIVITY = discord.Activity(**self.cfg['Activity'])
+        await self.client.change_presence(activity=ACTIVITY)
+
+
+    @commands.command()
     async def ping(self, ctx):
 
         """ pow """
@@ -35,7 +49,8 @@ class GanjaBot(cmds.Cog):
         await ctx.send(f'```css\nPOW {latency}ms\n```', delete_after=10)
 
 
-    @cmds.command()
+    @commands.command()
+    @has_permissions(administrator=True, manage_messages=True, manage_roles=True)
     async def clear(self, ctx, amount=1):
 
         """
@@ -44,86 +59,11 @@ class GanjaBot(cmds.Cog):
         """
 
         self.console_print(ctx)
-        if ctx.author.roles[-1].id == self.ADMIN_ID:
-            amount += 1
-            await ctx.channel.purge(limit=amount)
+        amount += 1
+        await ctx.channel.purge(limit=amount)
 
 
-
-    @cmds.command()
-    async def watchlist(self, ctx, cmd=None, args=None):
-
-        """
-        stock watchlist 
-        [cmd]:
-        add: adds [args] to watchlist
-        remove: remove [args] from watchlist
-        quotes: returns todays quotes
-        None: returns watchlist tickers
-        """
-
-        self.console_print(ctx)
-        role = ctx.author.roles
-        is_admin = role[-1].id == self.ADMIN_ID
-        await ctx.message.delete()
-
-        # !watchlist add {TICKER}
-        if cmd == 'add':
-
-            if is_admin:
-
-                self.WLIST.append(str(args))
-                await ctx.send(f'```diff\n+ {args} added to watchlist\n```')
-                with open(self.CFG_PATH, 'w') as f:
-                    json.dump(self.cfg, f)
-
-            else:
-                await ctx.send(f'```css\nadmin only command\n```')
-
-
-        # !watchlist remove {TICKER}
-        if cmd == 'remove':
-
-            if is_admin:
-                
-                try:
-
-                    self.WLIST.remove(args)
-                    await ctx.send(f'```diff\n- {args} removed from watchlist\n```')
-                    with open(self.CFG_PATH, 'w') as f:
-                        json.dump(self.cfg, f)
-
-                except:
-                    await ctx.send(f'```css\n{args} ticker not found in list\n```')
-
-            else:
-                await ctx.send(f'```css\nadmin only command\n```')
-
-
-        # !watchlist quotes
-        if cmd == 'quotes':
-
-            wlist = self.Scrapper.WatchList(self.WLIST)
-            await ctx.send(f'```diff\n+ quotes:\n{wlist.data_frame.to_string()}\n```')
-
-        # no command
-        if cmd == None:
-            await ctx.send(f'```diff\n+ watchlist:\n{self.WLIST}```')
-
-
-
-    @cmds.command()
-    async def stonks(self, ctx):
-
-        """ returns quotes from watchlist """
-
-        self.console_print(ctx)
-        await ctx.message.delete()
-        wlist = self.Scrapper.WatchList(self.cfg['Watch List'])
-        await ctx.send(f'```{wlist.data_frame.to_string()}```')
-
-
-    @cmds.command()
+    @commands.command()
     async def roll(self, ctx, sides=6):
         
         """
@@ -137,8 +77,10 @@ class GanjaBot(cmds.Cog):
         await ctx.send(f'```css\nD{sides} roll: {roll:02d}\n```')
 
 
-    @cmds.command()
+    @commands.command()
     async def uptime(self, ctx):
+
+        """ ganja-bot uptime """
 
         def strfdelta(tdelta, fmt):
             d = {"days": tdelta.days}
@@ -149,15 +91,72 @@ class GanjaBot(cmds.Cog):
         self.console_print(ctx)
         await ctx.message.delete()
 
-        uptime = dt.now() - self.client.user.created_at
+        uptime = dt.now() - self.created_at
         await ctx.send('```diff\n+ Client uptime: {}\n```'\
-            .format(strfdelta(uptime, '{days:02d} day(s) {hours}:{minutes}')))
+            .format
+            (
+                strfdelta
+                (
+                    uptime,
+                    '{days:02d} day(s), {hours:02d} hours, {minutes:02d} minutes')
+                )
+            )
 
+
+    @commands.command()
+    @has_permissions(administrator=True)
+    async def load(self, ctx, extension):
+
+        """ loads extension """
+
+        self.console_print(ctx)
+        await ctx.message.delete()
+
+        try:
+
+            self.client.load_extension(f'{self.COGS_PATH}.{extension}')
+            await ctx.send(f'```diff\n+ {extension} extension loaded\n```')
+            print(f'{extension} extension loaded')
+
+        except Exception as e:
+            
+            await ctx.send(f'```diff\n- {e}\n```')
+
+
+    @commands.command()
+    @has_permissions(administrator=True)
+    async def unload(self, ctx, extension):
+
+        """ unloads extension """
+
+        self.console_print(ctx)
+        await ctx.message.delete()
+
+        try:
+
+            self.client.unload_extension(f'{self.COGS_PATH}.{extension}')
+            await ctx.send(f'```diff\n- {extension} extension unloaded\n```')
+            print(f'{extension} extension unloaded')
+
+        except Exception as e:
+
+            await ctx.send(f'```diff\n- {e}\n```')
+
+
+    # FUNCTIONS
 
     def console_print(self, ctx):
+
+        """ prints message info to console """
+
         now = dt.now().strftime("%m/%d/%y %H:%M:%S")
         print(f'[{now}] {ctx.message.author.name} called {ctx.message.content[1:]}')
 
 
+    @staticmethod
+    def ccon():
+        os.system('cls||clear')
+
+
 def setup(client):
-    client.add_cog(GanjaBot(client))
+    client.add_cog(Commands(client))

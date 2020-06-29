@@ -19,8 +19,8 @@ class Commands(commands.Cog):
         
         self.CWD = realpath(dirname(dirname(dirname(__file__))))
         
-        self.CLIENT_CFG = os.path.join(self.CWD, "data\\client.json")
-        self.OPTIONS_CFG = os.path.join(self.CWD, "data\\options.json")
+        self.CLIENT_CFG = os.path.join(self.CWD, "data/client.json")
+        self.OPTIONS_CFG = os.path.join(self.CWD, "data/options.json")
         self.EXTENSION_PATH = "extensions"
 
         with open(self.OPTIONS_CFG) as f:

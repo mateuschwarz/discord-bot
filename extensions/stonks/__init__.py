@@ -347,7 +347,7 @@ class Stonks(commands.Cog):
 
         self.CWD = realpath(dirname(dirname(dirname(__file__))))
         
-        self.STONKS_PATH = os.path.join(self.CWD, "data\\stonks.json")
+        self.STONKS_PATH = os.path.join(self.CWD, "data/stonks.json")
 
         with open(self.STONKS_PATH) as f:
             self.cfg = json.load(f)

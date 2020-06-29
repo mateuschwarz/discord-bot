@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands 
 
 # Define
-CLIENT_CFG_PATH = "data\\client.json"
+CLIENT_CFG_PATH = "data/client.json"
 EXT_PATH = "extensions"
 
 

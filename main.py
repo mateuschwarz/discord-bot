@@ -1,26 +1,27 @@
 # === ganja-bot v4.2.0 ===
 
+import os
 import json
-import scrapper as sc
 import discord as ds
 from discord.ext import commands as cmds
-from functions import clear_console as ccon
 
 
 # configurations
 
-with open('cfg.json') as f:
+ccon = lambda : os.system('cls||clear')
+
+CFG_PATH = "./json/cfg.json"
+
+with open(CFG_PATH) as f:
     cfg = json.loads(f.read())
 
-TOKEN = cfg['Bot']['TOKEN']
-PREFIX = cfg['Bot']['Command Prefix']
-WLIST = cfg['Watch List']
-ADMIN_ID = 424253447403995148
+COGS_PATH = "cogs"
+ADMIN_ID = cfg['Client']['ADMIN ID']
 
-client = cmds.Bot(command_prefix=PREFIX)
+client = cmds.Bot(**cfg['Client']['Options'])
 
 
-# commands and events
+# base events and commands
 
 @client.event
 async def on_ready():
@@ -28,112 +29,37 @@ async def on_ready():
     """ bot ready message """
 
     ccon()
-    print('Ganja bot online.')
+    now = client.user.created_at.strftime("%m/%d/%y %H:%M:%S")
+    print(f'ganja-bot v4.2.0 online.')
+    print(f'created at: {now}')
+    print()
+    ACTIVITY = ds.Activity(**cfg['Activity'])
+    await client.change_presence(activity=ACTIVITY)
 
 
 @client.command()
-async def ping(ctx):
-
-    """ command: !ping """
-
-    await ctx.channel.purge(limit=1)
-    latency = round(client.latency * 1000)
-    await ctx.send(f'```fix\nPOW {latency}ms```')
-
-
-@client.command()
-async def clear(ctx, amount=1):
-
-    """
-    clears set amount of lines in channel
-
-    command: !clear <amount>
-    :amount: number of lines to clear
-
-    """
+async def load(ctx, extension):
 
     if ctx.author.roles[-1].id == ADMIN_ID:
-        amount += 1
-        await ctx.channel.purge(limit=amount)
-
-
-
-@client.command()
-async def watchlist(ctx, cmd=None, args=None):
-
-    """
-    command: !watchlist <cmd> <args>
-
-    :cmd: command
-    :args: arguments if necessary
-
-    """
-
-    role = ctx.author.roles
-    is_admin = role[-1].id == ADMIN_ID
-    await ctx.channel.purge(limit=1)
-
-    # !watchlist add {TICKER}
-    if cmd == 'add':
-
-        if is_admin:
-
-            WLIST.append(str(args))
-            await ctx.send(f'```{args} added to watchlist```')
-            with open('cfg.json', 'w') as f:
-                json.dump(cfg, f)
-
-        else:
-            await ctx.send(f'```admin only command```')
-
-
-    # !watchlist remove {TICKER}
-    if cmd == 'remove':
-
-        if is_admin:
-            
-            try:
-
-                WLIST.remove(args)
-                await ctx.send(f'```{args} removed from watchlist```')
-                with open('cfg.json', 'w') as f:
-                    json.dump(cfg, f)
-
-            except:
-                await ctx.send(f'```{args} ticker not found in list```')
-
-        else:
-            await ctx.send(f'```admin only command```')
-
-
-    # !watchlist quotes
-    if cmd == 'quotes':
-
-        wlist = sc.Scrapper.WatchList(WLIST)
-        await ctx.send(f'```Quotes:\n{wlist.data_frame.to_string()}```')
-
-    if cmd == None:
-        await ctx.send('```Watchlist:\n{}```'.format(WLIST))
+        await ctx.message.delete()
+        await ctx.send(f'```diff\n+ Loading {extension} extension\n```')
+        client.load_extension(f'{COGS_PATH}.{extension}')
 
 
 @client.command()
-async def STONKS(ctx):
+async def unload(ctx, extension):
 
-    """ !STONKS """
-
-    await ctx.channel.purge(limit=1)
-    wlist = sc.Scrapper.WatchList(cfg['Watch List'])
-    await ctx.send(f'```{wlist.data_frame.to_string()}```')
-
-
-@client.command()
-async def stonks(ctx):
-
-    """ !stonks """
-
-    await ctx.channel.purge(limit=1)
-    wlist = sc.Scrapper.WatchList(cfg['Watch List'])
-    await ctx.send(f'```{wlist.data_frame.to_string()}```')
+    if ctx.author.roles[-1].id == ADMIN_ID:
+        await ctx.message.delete()
+        await ctx.send(f'```diff\n- Unloading {extension} extension\n```')
+        client.unload_extension(f'{COGS_PATH}.{extension}')
 
 
-client.run(TOKEN)
+# loading extensions
+
+client.load_extension(f'bot')
+
+
+# client start
+
+client.run(cfg['Client']['TOKEN'])

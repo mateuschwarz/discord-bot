@@ -1,12 +1,15 @@
+
+import os
 import bs4
 import json
 import requests
 import pandas as pd
 import numpy as np
 from bs4 import BeautifulSoup as soup
-from functions import clear_console as ccon
 from datetime import datetime as dt
 import pdb
+
+ccon = lambda : os.system('cls||clear')
 
 class Scrapper:
 

@@ -2,8 +2,8 @@
     "OPTIONS":
     {
         "command_prefix": "!",
-        "description": "ganja-bot v4.2.0"
+        "description": ""
     },
-    "TOKEN": "NzI2MjY2OTUwNzgyNTUwMTI2.XvdjTg.dEJE3QBTH1Npj_XCxL4gVfj9ZeY",
+    "TOKEN": "",
     "Extensions": [""]
 }
